@@ -2,20 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Idiosyncratic\GraphQL;
+namespace Idiosyncratic\GraphQL\Server;
 
 use GraphQL\Error\DebugFlag;
 use GraphQL\Executor\ExecutionResult;
-use GraphQL\Executor\Promise\PromiseAdapter;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Server\OperationParams;
 use GraphQL\Type\Schema;
 use GraphQL\Validator\Rules\ValidationRule;
 
 /**
- * @phpstan-type PersistedQueryLoader callable(string $queryId, OperationParams $operation): (string|DocumentNode)
- * @phpstan-type RootValueResolver callable(OperationParams $operation, DocumentNode $doc, string $operationType): mixed
- * @phpstan-type ValidationRulesOption array<ValidationRule>|callable(OperationParams $operation, DocumentNode $doc, string $operationType): array<ValidationRule>|null
+ * @phpstan-type PersistedQueryLoader callable(string $queryId, OperationParams $operation) : (string | DocumentNode)
+ * @phpstan-type RootValueResolver callable(OperationParams $operation, DocumentNode $doc, string $operationType) : mixed
+ * @phpstan-type ValidationRulesOption array<ValidationRule> | callable(OperationParams $operation, DocumentNode $doc, string $operationType) : array<ValidationRule> | null
  * @phpstan-import-type ErrorsHandler from ExecutionResult
  * @phpstan-import-type ErrorFormatter from ExecutionResult
  */
@@ -32,7 +31,6 @@ final class ServerConfig
         private readonly Schema $schema,
         private readonly ?callable $errorFormatter = null,
         private readonly ?callable $errorsHandler = null,
-        private readonly ?PromiseAdapter $promiseAdapter = null,
         private readonly bool $queryBatching = false,
         private readonly ?callable $persistedQueryLoader = null,
         private readonly callable | array | null $validationRules = null,
@@ -63,11 +61,6 @@ final class ServerConfig
     public function getErrorsHandler() : ?callable
     {
         return $this->errorsHandler;
-    }
-
-    public function getPromiseAdapter() : ?PromiseAdapter
-    {
-        return $this->promiseAdapter;
     }
 
     /**
