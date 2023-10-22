@@ -35,7 +35,7 @@ final class PsrMessageTransformer
     /** @return OperationParams|array<OperationParams> */
     public function fromPsrServerRequest(
         ServerRequestInterface $request,
-    ) : OperationParams | array {
+    ) : OperationParams|array {
         $httpMethod = $request->getMethod();
 
         switch ($httpMethod) {
@@ -52,7 +52,7 @@ final class PsrMessageTransformer
 
     /** @param ExecutionResult|array<ExecutionResult> $result */
     public function toPsrResponse(
-        ExecutionResult | array $result,
+        ExecutionResult|array $result,
     ) : ResponseInterface {
         $body = $this->streamFactory->createStream();
 
@@ -66,7 +66,7 @@ final class PsrMessageTransformer
     /** @return OperationParams|array<OperationParams> */
     private function parseBodyParams(
         ServerRequestInterface $request,
-    ) : OperationParams | array {
+    ) : OperationParams|array {
         $contentType = $request->getHeader('content-type');
 
         if (! isset($contentType[0])) {

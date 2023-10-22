@@ -21,6 +21,33 @@ use GraphQL\Validator\Rules\ValidationRule;
 final class ServerConfig
 {
     /**
+     * @var callable|null
+     * @phpstan-var ErrorFormatter|null $errorFormatter
+     */
+    private readonly mixed $errorFormatter;
+
+    /**
+     * @var callable|null
+     * @phpstan-var ErrorsHandler|null $errorsHandler
+     */
+    private readonly mixed $errorsHandler;
+
+    /**
+     * @var callable|null
+     * @phpstan-var PersistedQueryLoader|null $persistedQueryLoader
+     */
+    private readonly mixed $persistedQueryLoader;
+
+    /** @var callable|null */
+    private readonly mixed $fieldResolver;
+
+    /**
+     * @param array<ValidationRule>|callable|null $validationRules
+     * @phpstan-var ValidationRulesOption $validationRules
+     */
+    private readonly mixed $validationRules;
+
+    /**
      * @param array<ValidationRule>|callable|null $validationRules
      * @phpstan-param ErrorFormatter|null $errorFormatter
      * @phpstan-param ErrorsHandler|null $errorsHandler
@@ -29,15 +56,20 @@ final class ServerConfig
      */
     public function __construct(
         private readonly Schema $schema,
-        private readonly ?callable $errorFormatter = null,
-        private readonly ?callable $errorsHandler = null,
+        callable|null $errorFormatter = null,
+        callable|null $errorsHandler = null,
         private readonly bool $queryBatching = false,
-        private readonly ?callable $persistedQueryLoader = null,
-        private readonly callable | array | null $validationRules = null,
-        private readonly ?callable $fieldResolver = null,
+        callable|null $persistedQueryLoader = null,
+        array|callable|null $validationRules = null,
+        callable|null $fieldResolver = null,
         private readonly mixed $rootValue = null,
         private readonly int $debugFlag = DebugFlag::NONE,
     ) {
+        $this->errorFormatter = $errorFormatter;
+        $this->errorsHandler = $errorsHandler;
+        $this->fieldResolver = $fieldResolver;
+        $this->persistedQueryLoader = $persistedQueryLoader;
+        $this->validationRules = $validationRules;
     }
 
     /** @phpstan-return mixed|RootValueResolver */
@@ -46,19 +78,19 @@ final class ServerConfig
         return $this->rootValue;
     }
 
-    public function getSchema() : ?Schema
+    public function getSchema() : Schema|null
     {
         return $this->schema;
     }
 
     /** @phpstan-return ErrorFormatter|null */
-    public function getErrorFormatter() : ?callable
+    public function getErrorFormatter() : callable|null
     {
         return $this->errorFormatter;
     }
 
     /** @phpstan-return ErrorsHandler|null */
-    public function getErrorsHandler() : ?callable
+    public function getErrorsHandler() : callable|null
     {
         return $this->errorsHandler;
     }
@@ -67,18 +99,18 @@ final class ServerConfig
      * @return array<ValidationRule>|callable|null
      * @phpstan-return ValidationRulesOption
      */
-    public function getValidationRules() : array | callable | null
+    public function getValidationRules() : array|callable|null
     {
         return $this->validationRules;
     }
 
-    public function getFieldResolver() : ?callable
+    public function getFieldResolver() : callable|null
     {
         return $this->fieldResolver;
     }
 
     /** @phpstan-return PersistedQueryLoader|null */
-    public function getPersistedQueryLoader() : ?callable
+    public function getPersistedQueryLoader() : callable|null
     {
         return $this->persistedQueryLoader;
     }

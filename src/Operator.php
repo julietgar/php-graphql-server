@@ -41,8 +41,8 @@ final class Operator
      */
     public function execute(
         mixed $context,
-        OperationParams | array $operations,
-    ) : ExecutionResult | array {
+        OperationParams|array $operations,
+    ) : ExecutionResult|array {
         if (is_array($operations)) {
             return $this->executeBatch($context, $operations);
         }
@@ -248,7 +248,6 @@ final class Operator
         // @phpstan-ignore argument.type
         $source = $loader($operationParams->queryId, $operationParams);
 
-        // @phpstan-ignore-next-line Necessary until PHP gains function types
         if (! is_string($source) && ! $source instanceof DocumentNode) {
             $documentNode = DocumentNode::class;
             $safeSource = Utils::printSafe($source);
@@ -296,14 +295,13 @@ final class Operator
         OperationParams $params,
         DocumentNode $doc,
         string $operationType,
-    ) : ?array {
+    ) : array|null {
         $validationRules = $this->config->getValidationRules();
 
         if (is_callable($validationRules)) {
             $validationRules = $validationRules($params, $doc, $operationType);
         }
 
-        // @phpstan-ignore-next-line unless PHP gains function types, we have to check this at runtime
         if ($validationRules !== null && ! is_array($validationRules)) {
             $safeValidationRules = Utils::printSafe($validationRules);
 
