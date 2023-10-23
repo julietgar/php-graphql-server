@@ -42,7 +42,7 @@ final class ServerConfig
     private readonly mixed $fieldResolver;
 
     /**
-     * @param array<ValidationRule>|callable|null $validationRules
+     * @var array<ValidationRule>|callable|null
      * @phpstan-var ValidationRulesOption $validationRules
      */
     private readonly mixed $validationRules;
