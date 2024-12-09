@@ -10,19 +10,21 @@ use Psr\Http\Message\ServerRequestInterface;
 final class Server
 {
     public function __construct(
-        private readonly PsrMessageTransformer $psr,
+        private readonly PsrMessageTransformer $psrTransformer,
         private readonly Operator $operator,
+        private readonly ServerConfig $config,
     ) {
     }
 
     public function handle(
         ServerRequestInterface $request,
-        mixed $context,
+        Context $context,
     ) : ResponseInterface {
-        return $this->psr->toPsrResponse(
+        return $this->psrTransformer->toResponse(
             $this->operator->execute(
                 $context,
-                $this->psr->fromPsrServerRequest($request),
+                $this->config,
+                $this->psrTransformer->fromServerRequest($request),
             ),
         );
     }

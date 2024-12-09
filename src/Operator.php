@@ -8,6 +8,7 @@ use GraphQL\Error\Error;
 use GraphQL\Error\FormattedError;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Executor\ExecutionResult;
+use GraphQL\Executor\Executor;
 use GraphQL\Executor\Promise\Adapter\SyncPromiseAdapter;
 use GraphQL\Executor\Promise\Promise;
 use GraphQL\Executor\Promise\PromiseAdapter;
@@ -19,9 +20,7 @@ use GraphQL\Server\RequestError;
 use GraphQL\Utils\AST;
 use GraphQL\Utils\Utils;
 
-use function array_is_list;
 use function array_map;
-use function assert;
 use function is_array;
 use function is_callable;
 use function is_string;
@@ -29,72 +28,70 @@ use function sprintf;
 
 final class Operator
 {
-    public function __construct(
-        private readonly ServerConfig $config,
-    ) {
-    }
-
     /**
      * @param OperationParams|array<OperationParams> $operations
      *
      * @return ExecutionResult|array<int, ExecutionResult>
      */
     public function execute(
-        mixed $context,
+        Context $context,
+        ServerConfig $config,
         OperationParams|array $operations,
     ) : ExecutionResult|array {
         if (is_array($operations)) {
-            return $this->executeBatch($context, $operations);
+            return $this->executeBatch($context, $config, $operations);
         }
 
-        return $this->executeOperation($context, $operations);
+        return $this->executeOperation($context, $config, $operations);
     }
 
     /**
      * @param array<OperationParams> $operations
      *
-     * @return array<int, ExecutionResult>
+     * @return array<int, ExecutionResult>|Promise
      */
     private function executeBatch(
-        mixed $context,
+        Context $context,
+        ServerConfig $config,
         array $operations,
-    ) : array {
-        $promiseAdapter = new SyncPromiseAdapter();
+    ) : array|Promise {
+        $promiseAdapter = $this->config->getPromiseAdapter() ?? Executor::getDefaultPromiseAdapter();
 
         $result = [];
 
         foreach ($operations as $operation) {
-            $result[] = $this->promiseToExecuteOperation($promiseAdapter, $this->config, $operation, true);
+            $result[] = $this->promiseToExecuteOperation($promiseAdapter, $context, $config, $operation, true);
         }
 
         $result = $promiseAdapter->all($result);
 
-        $result = $promiseAdapter->wait($result);
-
-        assert(is_array($result) && array_is_list($result));
+        if ($promiseAdapter instanceof SyncPromiseAdapter) {
+            $result = $promiseAdapter->wait($result);
+        }
 
         return $result;
     }
 
     private function executeOperation(
-        mixed $context,
-        OperationParams $op,
-    ) : ExecutionResult {
-        $promiseAdapter = new SyncPromiseAdapter();
+        Context $context,
+        OperationParams $operation,
+    ) : ExecutionResult|Promise {
+        $promiseAdapter = $this->config->getPromiseAdapter() ?? Executor::getDefaultPromiseAdapter();
 
-        $result = $this->promiseToExecuteOperation($promiseAdapter, $this->config, $op);
+        $result = $this->promiseToExecuteOperation($promiseAdapter, $context, $config, $operation);
 
-        $result = $promiseAdapter->wait($result);
-
-        assert($result instanceof ExecutionResult);
+        if ($promiseAdapter instanceof SyncPromiseAdapter) {
+            $result = $promiseAdapter->wait($result);
+        }
 
         return $result;
     }
 
     private function promiseToExecuteOperation(
         PromiseAdapter $promiseAdapter,
-        mixed $context,
-        OperationParams $op,
+        Context $context,
+        ServerConfig $config,
+        OperationParams $operation,
         bool $isBatch = false,
     ) : Promise {
         try {
@@ -106,7 +103,7 @@ final class Operator
                 throw new RequestError('Batched queries are not supported by this server');
             }
 
-            $errors = $this->validateOperationParams($op);
+            $errors = $this->validateOperationParams($operation);
 
             if ($errors !== []) {
                 $locatedErrors = array_map(
@@ -119,9 +116,9 @@ final class Operator
                 );
             }
 
-            $doc = $op->queryId !== null
+            $doc = $operation->queryId !== null
                 ? $this->loadPersistedQuery($op)
-                : $op->query;
+                : $operation->query;
 
             if (! $doc instanceof DocumentNode) {
                 // @phpstan-ignore argument.type
@@ -129,14 +126,14 @@ final class Operator
             }
 
             // @phpstan-ignore argument.type
-            $operationAST = AST::getOperationAST($doc, $op->operation);
+            $operationAST = AST::getOperationAST($doc, $operation->operation);
 
             if ($operationAST === null) {
                 throw new RequestError('Failed to determine operation type');
             }
 
             $operationType = $operationAST->operation;
-            if ($operationType !== 'query' && $op->readOnly) {
+            if ($operationType !== 'query' && $operation->readOnly) {
                 throw new RequestError('GET supports only query operation');
             }
 
@@ -145,11 +142,11 @@ final class Operator
                 $this->config->getSchema(),
                 $doc,
                 $this->resolveRootValue($op, $doc, $operationType),
-                $this->resolveContextValue($context, $op, $doc, $operationType),
+                $context,
                 // @phpstan-ignore argument.type
-                $op->variables,
+                $operation->variables,
                 // @phpstan-ignore argument.type
-                $op->operation,
+                $operation->operation,
                 $this->config->getFieldResolver(),
                 // @phpstan-ignore argument.type
                 $this->resolveValidationRules($op, $doc, $operationType),
@@ -274,20 +271,6 @@ final class Operator
         }
 
         return $rootValue;
-    }
-
-    /** @return mixed user defined */
-    private function resolveContextValue(
-        mixed $context,
-        OperationParams $params,
-        DocumentNode $doc,
-        string $operationType,
-    ) : mixed {
-        if (is_callable($context)) {
-            $context = $context($params, $doc, $operationType);
-        }
-
-        return $context;
     }
 
     /** @return array<mixed>|null */
