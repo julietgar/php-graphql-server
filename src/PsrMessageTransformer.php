@@ -33,7 +33,7 @@ final class PsrMessageTransformer
     }
 
     /** @return OperationParams|array<OperationParams> */
-    public function fromPsrServerRequest(
+    public function fromServerRequest(
         ServerRequestInterface $request,
     ) : OperationParams|array {
         $httpMethod = $request->getMethod();
@@ -51,7 +51,7 @@ final class PsrMessageTransformer
     }
 
     /** @param ExecutionResult|array<ExecutionResult> $result */
-    public function toPsrResponse(
+    public function toResponse(
         ExecutionResult|array $result,
     ) : ResponseInterface {
         $body = $this->streamFactory->createStream();
