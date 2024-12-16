@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Idiosyncratic\GraphQL\Server;
 
-use ArrayIterator
-
+use ArrayIterator;
 use Countable;
 use IteratorAggregate;
 use Psr\Http\Message\ServerRequestInterface;
