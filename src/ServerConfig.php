@@ -6,6 +6,8 @@ namespace Idiosyncratic\GraphQL\Server;
 
 use GraphQL\Error\DebugFlag;
 use GraphQL\Executor\ExecutionResult;
+use GraphQL\Executor\Executor;
+use GraphQL\Executor\Promise\PromiseAdapter;
 use GraphQL\Language\AST\DocumentNode;
 use GraphQL\Server\OperationParams;
 use GraphQL\Type\Schema;
@@ -64,6 +66,7 @@ final class ServerConfig
         callable|null $fieldResolver = null,
         private readonly mixed $rootValue = null,
         private readonly int $debugFlag = DebugFlag::NONE,
+        private readonly PromiseAdapter|null $promiseAdapter = null,
     ) {
         $this->errorFormatter = $errorFormatter;
         $this->errorsHandler = $errorsHandler;
@@ -93,6 +96,11 @@ final class ServerConfig
     public function getErrorsHandler() : callable|null
     {
         return $this->errorsHandler;
+    }
+
+    public function getPromiseAdapter() : PromiseAdapter
+    {
+        return $this->promiseAdapter ?? Executor::getDefaultPromiseAdapter();
     }
 
     /**

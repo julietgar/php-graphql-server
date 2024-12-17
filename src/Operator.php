@@ -55,7 +55,7 @@ final class Operator
         ServerConfig $config,
         array $operations,
     ) : array|Promise {
-        $promiseAdapter = $this->config->getPromiseAdapter() ?? Executor::getDefaultPromiseAdapter();
+        $promiseAdapter = $config->getPromiseAdapter();
 
         $result = [];
 
@@ -74,9 +74,10 @@ final class Operator
 
     private function executeOperation(
         Context $context,
+        ServerConfig $config,
         OperationParams $operation,
     ) : ExecutionResult|Promise {
-        $promiseAdapter = $this->config->getPromiseAdapter() ?? Executor::getDefaultPromiseAdapter();
+        $promiseAdapter = $config->getPromiseAdapter();
 
         $result = $this->promiseToExecuteOperation($promiseAdapter, $context, $config, $operation);
 
@@ -95,11 +96,11 @@ final class Operator
         bool $isBatch = false,
     ) : Promise {
         try {
-            if ($this->config->getSchema() === null) {
+            if ($config->getSchema() === null) {
                 throw new InvariantViolation('Schema is required for the server');
             }
 
-            if ($isBatch && ! $this->config->getQueryBatching()) {
+            if ($isBatch && ! $config->getQueryBatching()) {
                 throw new RequestError('Batched queries are not supported by this server');
             }
 
@@ -117,7 +118,7 @@ final class Operator
             }
 
             $doc = $operation->queryId !== null
-                ? $this->loadPersistedQuery($op)
+                ? $this->loadPersistedQuery($op, $config)
                 : $operation->query;
 
             if (! $doc instanceof DocumentNode) {
@@ -139,17 +140,17 @@ final class Operator
 
             $result = GraphQL::promiseToExecute(
                 $promiseAdapter,
-                $this->config->getSchema(),
+                $config->getSchema(),
                 $doc,
-                $this->resolveRootValue($op, $doc, $operationType),
+                $this->resolveRootValue($op, $doc, $operationType, $config),
                 $context,
                 // @phpstan-ignore argument.type
                 $operation->variables,
                 // @phpstan-ignore argument.type
                 $operation->operation,
-                $this->config->getFieldResolver(),
+                $config->getFieldResolver(),
                 // @phpstan-ignore argument.type
-                $this->resolveValidationRules($op, $doc, $operationType),
+                $this->resolveValidationRules($op, $doc, $operationType, $config),
             );
         } catch (RequestError $e) {
             $result = $promiseAdapter->createFulfilled(
@@ -160,8 +161,6 @@ final class Operator
                 new ExecutionResult(null, [$e]),
             );
         }
-
-        $config = $this->config;
 
         $applyErrorHandling = static function (ExecutionResult $result) use ($config) : ExecutionResult {
             $result->setErrorsHandler($config->getErrorsHandler());
@@ -235,8 +234,9 @@ final class Operator
     /** @throws RequestError */
     private function loadPersistedQuery(
         OperationParams $operationParams,
+        ServerConfig $config,
     ) : mixed {
-        $loader = $this->config->getPersistedQueryLoader();
+        $loader = $config->getPersistedQueryLoader();
 
         if ($loader === null) {
             throw new RequestError('Persisted queries are not supported by this server');
@@ -263,8 +263,9 @@ final class Operator
         OperationParams $params,
         DocumentNode $doc,
         string $operationType,
+        ServerConfig $config,
     ) : mixed {
-        $rootValue = $this->config->getRootValue();
+        $rootValue = $config->getRootValue();
 
         if (is_callable($rootValue)) {
             $rootValue = $rootValue($params, $doc, $operationType);
@@ -278,8 +279,9 @@ final class Operator
         OperationParams $params,
         DocumentNode $doc,
         string $operationType,
+        ServerConfig $config,
     ) : array|null {
-        $validationRules = $this->config->getValidationRules();
+        $validationRules = $config->getValidationRules();
 
         if (is_callable($validationRules)) {
             $validationRules = $validationRules($params, $doc, $operationType);
