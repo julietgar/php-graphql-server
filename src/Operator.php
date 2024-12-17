@@ -8,7 +8,6 @@ use GraphQL\Error\Error;
 use GraphQL\Error\FormattedError;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Executor\ExecutionResult;
-use GraphQL\Executor\Executor;
 use GraphQL\Executor\Promise\Adapter\SyncPromiseAdapter;
 use GraphQL\Executor\Promise\Promise;
 use GraphQL\Executor\Promise\PromiseAdapter;
@@ -118,7 +117,7 @@ final class Operator
             }
 
             $doc = $operation->queryId !== null
-                ? $this->loadPersistedQuery($op, $config)
+                ? $this->loadPersistedQuery($operation, $config)
                 : $operation->query;
 
             if (! $doc instanceof DocumentNode) {
@@ -142,7 +141,7 @@ final class Operator
                 $promiseAdapter,
                 $config->getSchema(),
                 $doc,
-                $this->resolveRootValue($op, $doc, $operationType, $config),
+                $this->resolveRootValue($operation, $doc, $operationType, $config),
                 $context,
                 // @phpstan-ignore argument.type
                 $operation->variables,
@@ -150,7 +149,7 @@ final class Operator
                 $operation->operation,
                 $config->getFieldResolver(),
                 // @phpstan-ignore argument.type
-                $this->resolveValidationRules($op, $doc, $operationType, $config),
+                $this->resolveValidationRules($operation, $doc, $operationType, $config),
             );
         } catch (RequestError $e) {
             $result = $promiseAdapter->createFulfilled(
