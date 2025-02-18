@@ -8,9 +8,9 @@
     "source": "https://github.com/idiosyncratic-code/php-graphql-server"
   },
   "require": {
-    "php": ">=8.2",
+    "php": ">=8.4",
     "psr/http-factory": "^1.0",
-    "thecodingmachine/safe": "^2.5",
+    "thecodingmachine/safe": "^3.0",
     "webonyx/graphql-php": "^15.18"
   },
   "autoload": {
